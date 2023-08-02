@@ -12,7 +12,7 @@ options compress=yes nocenter ls=150 ps=200 errors=5 mprint merror
 
 ***** Years/Macro variables;
 %let minyear=1999;
-%let maxyear=2019;
+%let maxyear=2021;
 %let max_demdx=26;
 
 ***** Format;
