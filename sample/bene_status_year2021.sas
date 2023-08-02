@@ -73,11 +73,11 @@ run;
 %include "&maclib./statyr.sas";
 
 /* Uses the MBSF_AB files */
-%statyr(2001,2005,hmo_mo=bene_hmo_cvrage_tot_mons,hmoind=beme_hmo_ind_,hmonm=0,
+%statyr(1999,2005,hmo_mo=bene_hmo_cvrage_tot_mons,hmoind=beme_hmo_ind_,hmonm=0,
 	stbuy=bene_mdcr_entlmt_buyin_ind_,stbuymo=bene_state_buyin_tot_mons,
 	denbsf=mbsf_ab_,denfile=,denlib=mbsf,
 	bdt=bene_birth_dt,ddt=bene_death_dt,rec=bene_entlmt_rsn_,esrd=bene_esrd_ind,
-	mscd=bene_mdcr_status_cd,demogyr=2015);
+	mscd=bene_mdcr_status_cd,demogyr=2021);
 
 /* Uses the MBSF_ABCD files */
-%statyr(1999,2021,demogyr=2021);
+%statyr(2006,2021,demogyr=2021);
