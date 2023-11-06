@@ -10,7 +10,7 @@ TITLE1 'Base';
 					- Require FFS, Part D all year until death;
 
 * INPUT: bene_status_yearYYYY, bene_demog2018;
-* OUTPUT: samp_3yrffsptd_0621;;
+* OUTPUT: samp_1yrffsptd_0619;;
 
 options compress=yes nocenter ls=160 ps=200 errors=5  errorcheck=strict mprint merror
 	mergenoby=warn varlenchk=error dkricond=error dkrocond=error msglevel=i;
@@ -45,14 +45,14 @@ proc format;
 run;
 
 ***** Years of data;
-%let demogyr=2021;
+%let demogyr=2019;
 
 %let mindatayear=2004;
-%let maxdatayear=2020;
+%let maxdatayear=2019;
 
 ***** Years of sample;
 %let minsampyear=2006;
-%let maxsampyear=2021;
+%let maxsampyear=2019;
 
 options obs=max;
 **** Step 1: Merge together bene_status yearly files;
@@ -82,7 +82,7 @@ run;
 
 **** Step 2: Merge to bene_demog which has standardized demographic variables & flag sample;
 %macro sample;
-data &outlib..samp_3yrffsptd_0621;
+data &outlib..samp_1yrffsptd_0619;
 	merge &tempwork..benestatus (in=a) &datalib..bene_demog&demogyr. (in=b keep=bene_id dropflag race_bg sex birth_date death_date);
 	by bene_id;
 	if a and b;
@@ -94,65 +94,19 @@ data &outlib..samp_3yrffsptd_0621;
 	if race_bg in("","0") then race_bg="3"; 
 		
 	%do year=&minsampyear %to &maxsampyear;
-		
-		%let prev1_year=%eval(&year-1);
-		%let prev2_year=%eval(&year-2);
-
+	
 		* Age groups;
 		age_group&year=put(age_beg&year,agegroup.);
 		age_groupa&year=put(age_beg&year,agegroupa.);
-		
-		* First, doing Part D years where you cant look back due to enrollment issues in 2006;
-		* Second, doing Part D year with only 1 year lookback;
-		* Third, doing Part D years with two year lookback;
-		%if &year<=2007 %then %do; 
-		
-			%let ptdprev1_year=&year;
-			%let ptdprev2_year=&year;
 			
-			* limiting to age 67 and in FFS and Part D in 2 previous years;
-			if age_beg&year>=67 
-			and dropflag="N"
-			and (enrFFS_allyr&prev2_year="Y" and enrFFS_allyr&prev1_year="Y" and enrFFS_allyr&year="Y")
-			and (enrAB_mo_yr&prev2_year=12 and enrAB_mo_yr&prev1_year=12) 
-			and (ptD_allyr&ptdprev2_year="Y" and ptd_allyr&ptdprev1_year="Y" and ptd_allyr&year="Y")
-			then insamp&year=1;
-			else insamp&year=0;
-			
-		%end;
-		
-		%if &year=2008 %then %do;
-		
-			%let ptdprev1_year=%eval(&year-1);
-			%let ptdprev2_year=%eval(&year-1);
-			
-			* limiting to age 67 and in FFS and Part D in 2 previous years;
-			if age_beg&year>=67 
-			and dropflag="N"
-			and (enrFFS_allyr&prev2_year="Y" and enrFFS_allyr&prev1_year="Y" and enrFFS_allyr&year="Y")
-			and (enrAB_mo_yr&prev2_year=12 and enrAB_mo_yr&prev1_year=12) 
-			and (ptD_allyr&ptdprev2_year="Y" and ptd_allyr&ptdprev1_year="Y" and ptd_allyr&year="Y")
-			then insamp&year=1;
-			else insamp&year=0;
-			
-		%end;
-		
-		%else %if &year>2008 %then %do;
-			
-			%let ptdprev1_year=%eval(&year-1);
-			%let ptdprev2_year=%eval(&year-2);
-			
-			* Limiting to age 67 and in FFS and Part D in 2 previous years;
-			if age_beg&year>=67 
-			and dropflag="N"
-			and (enrFFS_allyr&prev2_year="Y" and enrFFS_allyr&prev1_year="Y" and enrFFS_allyr&year="Y")
-			and (enrAB_mo_yr&prev2_year=12 and enrAB_mo_yr&prev1_year=12) 
-			and (ptD_allyr&ptdprev2_year="Y" and ptd_allyr&ptdprev1_year="Y" and ptd_allyr&year="Y")
-			then insamp&year=1;
-			else insamp&year=0;
-			
-		%end;
-		
+		* Only looks at current year, no lookback;
+		* limiting to age 67 and in FFS and Part D in 2 previous years;
+		if age_beg&year>=67 
+		and dropflag="N"
+		and enrFFS_allyr&year="Y"
+		and ptd_allyr&year="Y"
+		then insamp&year=1;
+		else insamp&year=0;
 			
 	%end;
 	
@@ -168,7 +122,7 @@ run;
 
 * By year;
 %do year=&minsampyear %to &maxsampyear;
-proc freq data=&outlib..samp_3yrffsptd_0621 noprint;
+proc freq data=&outlib..samp_1yrffsptd_0619 noprint;
 	where insamp&year=1;
 	format race_bg $raceft. sex $sexft.;
 	table race_bg / out=&tempwork..byrace_&year;
@@ -186,7 +140,7 @@ proc contents data=&tempwork..byrace_&year._t; run;
 proc contents data=&tempwork..byage_&year._t; run;
 proc contents data=&tempwork..bysex_&year._t; run;
 
-proc means data=&outlib..samp_3yrffsptd_0621 noprint;
+proc means data=&outlib..samp_1yrffsptd_0619 noprint;
 	where insamp&year=1;
 	output out=&tempwork..avgage_&year (drop=_type_ rename=_freq_=total_bene) mean(age_beg&year)=avgage;
 run;
@@ -199,7 +153,7 @@ run;
 %end;
 
 * Overall - only from 2007 to 2013;
-proc freq data=&outlib..samp_3yrffsptd_0621 noprint;
+proc freq data=&outlib..samp_1yrffsptd_0619 noprint;
 	where anysamp=1;
 	format race_bg $raceft. sex $sexft.;
 	table race_bg / out=&tempwork..byrace_all;
@@ -212,7 +166,7 @@ proc transpose data=&tempwork..bysex_all out=&tempwork..bysex_all_t (drop=_name_
 data &tempwork..allages;
 	set
 	%do year=&minsampyear %to &maxsampyear;
-		&outlib..samp_3yrffsptd_0621 (where=(insamp&year=1) keep=insamp&year bene_id age_beg&year rename=(age_beg&year=age_beg))
+		&outlib..samp_1yrffsptd_0619 (where=(insamp&year=1) keep=insamp&year bene_id age_beg&year rename=(age_beg&year=age_beg))
 	%end;;
 run;
 
@@ -231,22 +185,22 @@ data samp_stats_ffsptd;
 run;
 
 proc export data=samp_stats_ffsptd
-	outfile="&rootpath./Projects/Programs/base/exports/samp_stats_3yrffsptd_0621.xlsx"
+	outfile="&rootpath./Projects/Programs/base/exports/samp_stats_1yrffsptd_0619.xlsx"
 	dbms=xlsx
 	replace;
 	sheet="stats";
 run;
 
-proc contents data=&outlib..samp_3yrffsptd_0621; run;
+proc contents data=&outlib..samp_1yrffsptd_0619; run;
 
 %do year=&minsampyear. %to &maxsampyear.;
-proc freq data=&outlib..samp_3yrffsptd_0621;
+proc freq data=&outlib..samp_1yrffsptd_0619;
 	where insamp&year.=1;
 	table age_beg&year. / out=&tempwork..freq_1yragedist&year.;
 run;
 
 proc export data=&tempwork..freq_1yragedist&year.
-	outfile="&rootpath./Projects/Programs/base/exports/samp_stats_3yrffsptd_0621.xlsx"
+	outfile="&rootpath./Projects/Programs/base/exports/samp_stats_1yrffsptd_0619.xlsx"
 	dbms=xlsx
 	replace;
 	sheet="detail_age_dist&year.";
